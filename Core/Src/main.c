@@ -59,6 +59,9 @@ uint8_t b1ChataRemoveCount;
 uint32_t startTime;
 uint32_t endTime;
 double responseTime;
+double responseTimeSum;
+double responseTimeAvg;
+uint8_t measureCount;
 
 /* USER CODE END PV */
 
@@ -110,6 +113,9 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   b1ChataRemoveCount = 0;
+  measureCount = 0;
+  responseTimeSum = 0;
+
   HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
 
@@ -371,6 +377,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		case HAL_TIM_ACTIVE_CHANNEL_2:
 			endTime = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
 			responseTime = (double)(endTime - startTime) / 84;
+			responseTimeSum += responseTime;
+			measureCount++;
+			responseTimeAvg = responseTimeSum / measureCount;
 			break;
 		default:
 			break;
