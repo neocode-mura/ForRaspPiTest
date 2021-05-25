@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "Math.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -58,10 +59,13 @@ const osThreadAttr_t defaultTask_attributes = {
 uint8_t b1ChataRemoveCount;
 uint32_t startTime;
 uint32_t endTime;
-double responseTime;
+#define MEASURE_COUNT_MAX 100
+double responseTime[MEASURE_COUNT_MAX];
 double responseTimeSum;
 double responseTimeAvg;
 uint8_t measureCount;
+
+double responseTimeSigma;
 
 /* USER CODE END PV */
 
@@ -367,6 +371,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+	double responseTimeSigmaSum;
+	uint8_t x;
+
 	if(htim->Instance == TIM2)
 	{
 		switch(htim->Channel)
@@ -376,10 +383,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 			break;
 		case HAL_TIM_ACTIVE_CHANNEL_2:
 			endTime = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-			responseTime = (double)(endTime - startTime) / 84;
-			responseTimeSum += responseTime;
-			measureCount++;
-			responseTimeAvg = responseTimeSum / measureCount;
+			if(measureCount < MEASURE_COUNT_MAX)
+			{
+				responseTime[measureCount] = (double)(endTime - startTime) / 84;
+				responseTimeSum += responseTime[measureCount];
+				responseTimeAvg = responseTimeSum / ++measureCount;
+
+				responseTimeSigmaSum = 0;
+				for(x = 0; x < measureCount; x++)
+				{
+					responseTimeSigmaSum += pow((responseTime[x] - responseTimeAvg), 2);
+				}
+				responseTimeSigma = pow((responseTimeSigmaSum / measureCount), 0.5);
+			}
 			break;
 		default:
 			break;
